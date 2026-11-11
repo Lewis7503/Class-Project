@@ -1,0 +1,1311 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StudentDB Management System</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+</head>
+
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
+
+<nav class="bg-indigo-700 text-white shadow-md p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <h1 class="text-xl font-bold">
+            🎓 StudentDB Management System
+        </h1>
+        <span class="text-xs">Auto-Save & CSV Backup</span>
+    </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-6 mt-6 space-y-6">
+
+<!-- NAVIGATION -->
+
+<div class="flex flex-wrap gap-2 bg-white p-2 rounded-xl shadow-sm">
+
+    <button onclick="switchTab('dashboard')" id="btn-dashboard"
+        class="tab-btn bg-indigo-600 text-white px-4 py-2 rounded-xl">
+        Dashboard
+    </button>
+
+    <button onclick="switchTab('students')" id="btn-students"
+        class="tab-btn px-4 py-2 rounded-xl">
+        Students
+    </button>
+
+    <button onclick="switchTab('courses')" id="btn-courses"
+        class="tab-btn px-4 py-2 rounded-xl">
+        Courses
+    </button>
+
+    <button onclick="switchTab('majors')" id="btn-majors"
+        class="tab-btn px-4 py-2 rounded-xl">
+        Majors
+    </button>
+
+    <button onclick="switchTab('enrollments')" id="btn-enrollments"
+        class="tab-btn px-4 py-2 rounded-xl">
+        Enrollments
+    </button>
+
+    <button onclick="switchTab('sql')" id="btn-sql"
+        class="tab-btn px-4 py-2 rounded-xl">
+        SQL Console
+    </button>
+
+</div>
+
+<!-- DASHBOARD -->
+
+<div id="tab-dashboard" class="tab-content space-y-6">
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            Total Students
+            <p id="stat-students" class="text-3xl font-bold">0</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            Total Courses
+            <p id="stat-courses" class="text-3xl font-bold">0</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            Total Majors
+            <p id="stat-majors" class="text-3xl font-bold">0</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            Active Enrollments
+            <p id="stat-enrollments" class="text-3xl font-bold">0</p>
+        </div>
+
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow space-y-4">
+
+        <h2 class="text-lg font-bold">
+            📂 Database Backup & Restore
+        </h2>
+
+        <button onclick="exportAllTables()"
+            class="bg-slate-800 text-white px-4 py-2 rounded-lg">
+            Export All Tables (CSV)
+        </button>
+
+        <label class="bg-emerald-600 text-white px-4 py-2 rounded-lg cursor-pointer">
+            Import CSV Backup
+
+            <input type="file" id="csvFileInput"
+                accept=".csv" onchange="importCSVTable(event)"
+                class="hidden">
+        </label>
+
+    </div>
+
+</div>
+
+<!-- STUDENTS -->
+
+<div id="tab-students" class="tab-content hidden space-y-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+
+        <h2 id="student-form-title" class="text-lg font-bold mb-4">
+            Add New Student
+        </h2>
+
+        <form onsubmit="handleStudentSubmit(event)"
+            class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <input id="std-fname" type="text"
+                placeholder="First Name" required
+                oninput="autoFillEmail()"
+                class="p-3 border rounded-lg">
+
+            <input id="std-lname" type="text"
+                placeholder="Last Name" required
+                oninput="autoFillEmail()"
+                class="p-3 border rounded-lg">
+
+            <input id="std-email" type="email"
+                placeholder="Email Address" required
+                class="p-3 border rounded-lg">
+
+            <div class="flex gap-2">
+
+                <button id="student-submit-btn" type="submit"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg">
+                    Add Student
+                </button>
+
+                <button id="student-cancel-btn" type="button"
+                    onclick="resetStudentForm()"
+                    class="hidden bg-slate-200 px-3 py-2 rounded-lg">
+                    Cancel
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+
+        <h2 class="text-lg font-bold mb-4">
+            Student Directory
+        </h2>
+
+        <input id="std-search" type="text"
+            oninput="renderStudents()"
+            placeholder="Search students..."
+            class="p-3 border rounded-lg w-full mb-4">
+
+        <div id="students-table-container"
+            class="overflow-x-auto"></div>
+
+    </div>
+
+</div>
+
+<!-- COURSES -->
+
+<div id="tab-courses" class="tab-content hidden space-y-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+
+        <h2 id="course-form-title" class="text-lg font-bold mb-4">
+            Add New Course
+        </h2>
+
+        <form onsubmit="handleCourseSubmit(event)"
+            class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+            <input id="crs-id" type="number"
+                placeholder="Course ID" required
+                class="p-3 border rounded-lg">
+
+            <input id="crs-code" type="number"
+                placeholder="Course Code" required
+                class="p-3 border rounded-lg">
+
+            <input id="crs-name" type="text"
+                placeholder="Course Name" required
+                class="p-3 border rounded-lg">
+
+            <input id="crs-seats" type="number"
+                placeholder="Total Seats" required
+                class="p-3 border rounded-lg">
+
+            <div class="flex gap-2">
+
+                <button id="course-submit-btn" type="submit"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg">
+                    Add Course
+                </button>
+
+                <button id="course-cancel-btn" type="button"
+                    onclick="resetCourseForm()"
+                    class="hidden bg-slate-200 px-3 py-2 rounded-lg">
+                    Cancel
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="text-lg font-bold mb-4">Course Catalog</h2>
+        <div id="courses-table-container"></div>
+    </div>
+
+</div>
+
+<!-- MAJORS -->
+
+<div id="tab-majors" class="tab-content hidden space-y-6">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="bg-white p-6 rounded-xl shadow">
+
+            <h2 class="font-bold mb-4">Create Major</h2>
+
+            <form onsubmit="addMajor(event)" class="space-y-4">
+
+                <input id="maj-id" type="number"
+                    placeholder="Major ID" required
+                    class="w-full p-3 border rounded-lg">
+
+                <input id="maj-name" type="text"
+                    placeholder="Major Name" required
+                    class="w-full p-3 border rounded-lg">
+
+                <button class="bg-indigo-600 text-white p-3 rounded-lg w-full">
+                    Create Major
+                </button>
+
+            </form>
+
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+
+            <h2 class="font-bold mb-4">Assign Student Major</h2>
+
+            <form onsubmit="assignMajor(event)" class="space-y-4">
+
+                <select id="assign-std" required
+                    class="w-full p-3 border rounded-lg"></select>
+
+                <select id="assign-maj" required
+                    class="w-full p-3 border rounded-lg"></select>
+
+                <button class="bg-emerald-600 text-white p-3 rounded-lg w-full">
+                    Assign / Update Major
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="font-bold mb-4">Student Major Allocations</h2>
+        <div id="majors-table-container"></div>
+    </div>
+
+</div>
+
+<!-- ENROLLMENTS -->
+
+<div id="tab-enrollments" class="tab-content hidden space-y-6">
+
+    <div class="bg-white p-6 rounded-xl shadow">
+
+        <h2 class="font-bold mb-4">Enroll Student in Course</h2>
+
+        <form onsubmit="addEnrollment(event)"
+            class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <select id="enr-std" required
+                class="p-3 border rounded-lg"></select>
+
+            <select id="enr-crs" required
+                class="p-3 border rounded-lg"></select>
+
+            <button class="bg-indigo-600 text-white p-3 rounded-lg">
+                Enroll Student
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+
+        <h2 class="font-bold mb-4">Active Enrollments</h2>
+
+        <div id="enrollments-table-container"></div>
+
+    </div>
+
+</div>
+
+<!-- SQL CONSOLE: ONLY ONE COPY -->
+
+<div id="tab-sql" class="tab-content hidden space-y-4">
+
+    <div class="bg-white p-6 rounded-xl shadow space-y-4">
+
+        <div class="flex justify-between items-center">
+
+            <h2 class="text-lg font-bold">SQL Console</h2>
+
+            <span class="text-xs bg-emerald-100 text-emerald-700 p-2 rounded-lg">
+                Auto-Save Enabled
+            </span>
+
+        </div>
+
+        <p class="text-sm text-slate-500">
+            Execute SQL commands and view database results.
+        </p>
+
+        <textarea id="sqlInput" rows="6"
+            class="w-full font-mono p-3 border rounded-lg">SELECT * FROM Students;</textarea>
+
+        <div class="flex flex-wrap gap-3">
+
+            <button onclick="runCustomQuery()"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg">
+                Run Query
+            </button>
+
+            <button onclick="saveDatabase()"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-lg">
+                Save Database
+            </button>
+
+            <button onclick="downloadDatabase()"
+                class="bg-slate-800 text-white px-4 py-2 rounded-lg">
+                Download Database
+            </button>
+
+        </div>
+
+        <div id="sqlSaveStatus" class="text-sm text-emerald-600"></div>
+
+        <div id="sqlResult" class="overflow-x-auto"></div>
+
+    </div>
+
+</div>
+
+</div><!-- END MAIN CONTAINER -->
+
+<script>
+
+// =====================================
+// DATABASE SETUP
+// =====================================
+
+let db = null;
+
+let editingStudentId = null;
+let editingCourseId = null;
+
+const DB_STORAGE_KEY = "StudentDB_Database";
+
+async function initDB() {
+
+    try {
+
+        const SQL = await initSqlJs({
+
+            locateFile: file =>
+                `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+
+        });
+
+        db = loadSavedDatabase(SQL);
+
+        if (!db) {
+
+            db = new SQL.Database();
+
+            db.run("PRAGMA foreign_keys = ON;");
+
+            db.run(`
+                CREATE TABLE Students (
+                    student_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL
+                );
+
+                CREATE TABLE Courses (
+                    course_id INTEGER PRIMARY KEY,
+                    course_code INTEGER UNIQUE NOT NULL,
+                    course_name TEXT NOT NULL,
+                    total_seats INTEGER
+                );
+
+                CREATE TABLE Major (
+                    major_id INTEGER PRIMARY KEY,
+                    major_name TEXT NOT NULL
+                );
+
+                CREATE TABLE Enrollment (
+                    student_id INTEGER,
+                    course_id INTEGER,
+                    PRIMARY KEY (student_id, course_id),
+                    FOREIGN KEY(student_id)
+                        REFERENCES Students(student_id),
+                    FOREIGN KEY(course_id)
+                        REFERENCES Courses(course_id)
+                );
+
+                CREATE TABLE Student_Major (
+                    student_id INTEGER PRIMARY KEY,
+                    major_id INTEGER,
+                    FOREIGN KEY(student_id)
+                        REFERENCES Students(student_id),
+                    FOREIGN KEY(major_id)
+                        REFERENCES Major(major_id)
+                );
+            `);
+
+            db.run(`
+                INSERT INTO Students
+                (first_name, last_name, email)
+                VALUES
+                ('Alice', 'Johnson', 'alice.johnson@university.edu'),
+                ('Bob', 'Smith', 'bob.smith@university.edu'),
+                ('Charlie', 'Brown', 'charlie.brown@university.edu');
+
+                INSERT INTO Courses VALUES
+                (101, 1001, 'Database Systems', 40),
+                (102, 1002, 'Web Development', 35);
+
+                INSERT INTO Major VALUES
+                (1, 'Computer Science'),
+                (2, 'Data Science');
+
+                INSERT INTO Student_Major VALUES
+                (1, 1),
+                (2, 2),
+                (3, 1);
+
+                INSERT INTO Enrollment VALUES
+                (1, 101),
+                (1, 102),
+                (2, 101);
+            `);
+
+        }
+
+        refreshAll();
+        saveDatabase();
+
+    } catch (error) {
+
+        console.error("Database initialization error:", error);
+
+        alert("Unable to initialize database: " + error.message);
+
+    }
+
+}
+
+
+// =====================================
+// SAVE DATABASE
+// =====================================
+
+function saveDatabase() {
+
+    if (!db) return;
+
+    try {
+
+        const data = db.export();
+
+        localStorage.setItem(
+            DB_STORAGE_KEY,
+            JSON.stringify(Array.from(data))
+        );
+
+        const status = document.getElementById("sqlSaveStatus");
+
+        if (status) {
+            status.innerText = "Database saved successfully!";
+        }
+
+    } catch (error) {
+
+        alert("Database save error: " + error.message);
+
+    }
+
+}
+
+
+// =====================================
+// LOAD SAVED DATABASE
+// =====================================
+
+function loadSavedDatabase(SQL) {
+
+    const savedData = localStorage.getItem(DB_STORAGE_KEY);
+
+    if (!savedData) return null;
+
+    try {
+
+        const binary = new Uint8Array(
+            JSON.parse(savedData)
+        );
+
+        const database = new SQL.Database(binary);
+
+        database.run("PRAGMA foreign_keys = ON;");
+
+        return database;
+
+    } catch (error) {
+
+        console.error("Database restore error:", error);
+
+        return null;
+
+    }
+
+}
+
+
+// =====================================
+// DOWNLOAD DATABASE
+// =====================================
+
+function downloadDatabase() {
+
+    if (!db) return;
+
+    const data = db.export();
+
+    const blob = new Blob(
+        [data],
+        { type: "application/x-sqlite3" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "StudentDB_Backup.sqlite";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+// =====================================
+// NAVIGATION
+// =====================================
+
+function switchTab(tabId) {
+
+    document.querySelectorAll(".tab-content")
+        .forEach(tab => tab.classList.add("hidden"));
+
+    document.querySelectorAll(".tab-btn")
+        .forEach(button => {
+
+            button.classList.remove(
+                "bg-indigo-600",
+                "text-white"
+            );
+
+        });
+
+    document.getElementById("tab-" + tabId)
+        .classList.remove("hidden");
+
+    const button = document.getElementById("btn-" + tabId);
+
+    button.classList.add(
+        "bg-indigo-600",
+        "text-white"
+    );
+
+    refreshAll();
+
+}
+
+
+// =====================================
+// REFRESH APPLICATION
+// =====================================
+
+function refreshAll() {
+
+    if (!db) return;
+
+    updateDashboard();
+
+    renderStudents();
+
+    renderCourses();
+
+    renderMajors();
+
+    renderEnrollments();
+
+    populateDropdowns();
+
+    saveDatabase();
+
+}
+
+
+// =====================================
+// DASHBOARD
+// =====================================
+
+function updateDashboard() {
+
+    const tables = [
+        ["Students", "stat-students"],
+        ["Courses", "stat-courses"],
+        ["Major", "stat-majors"],
+        ["Enrollment", "stat-enrollments"]
+    ];
+
+    tables.forEach(([table, element]) => {
+
+        const result = db.exec(
+            `SELECT COUNT(*) FROM ${table}`
+        );
+
+        document.getElementById(element).innerText =
+            result[0].values[0][0];
+
+    });
+
+}
+
+
+
+
+
+
+
+
+
+
+        // ================= STUDENTS LOGIC =================
+        function autoFillEmail() {
+            if (editingStudentId !== null) return; // Don't auto-overwrite when editing
+            const fname = document.getElementById('std-fname').value.trim().toLowerCase();
+            const lname = document.getElementById('std-lname').value.trim().toLowerCase();
+            const emailInput = document.getElementById('std-email');
+            if (fname && lname) {
+                emailInput.value = `${fname}.${lname}@university.edu`;
+            } else {
+                emailInput.value = '';
+            }
+        }
+
+        function renderStudents() {
+            const search = document.getElementById('std-search')?.value || '';
+            const res = db.exec(`SELECT * FROM Students WHERE first_name LIKE '%${search}%' OR last_name LIKE '%${search}%' OR email LIKE '%${search}%';`);
+            const container = document.getElementById('students-table-container');
+            if (res.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500">No students found.</p>';
+                return;
+            }
+            let html = '<table class="w-full text-left border-collapse text-sm"><thead><tr class="bg-slate-50 border-b"><th class="p-3 font-semibold">ID</th><th class="p-3 font-semibold">First Name</th><th class="p-3 font-semibold">Last Name</th><th class="p-3 font-semibold">Email</th><th class="p-3 font-semibold text-right">Actions</th></tr></thead><tbody>';
+            res[0].values.forEach(row => {
+                html += `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-3">${row[0]}</td>
+                    <td class="p-3">${row[1]}</td>
+                    <td class="p-3">${row[2]}</td>
+                    <td class="p-3">${row[3]}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editStudent(${row[0]}, '${row[1]}', '${row[2]}', '${row[3]}')" class="text-amber-600 hover:text-amber-800 font-medium text-xs bg-amber-50 px-3 py-1 rounded-lg cursor-pointer">Edit</button>
+                        <button onclick="deleteStudent(${row[0]})" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-3 py-1 rounded-lg cursor-pointer">Delete</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function handleStudentSubmit(e) {
+            e.preventDefault();
+            const fname = document.getElementById('std-fname').value;
+            const lname = document.getElementById('std-lname').value;
+            const email = document.getElementById('std-email').value;
+
+            try {
+                if (editingStudentId !== null) {
+                    db.run(`UPDATE Students SET first_name = ?, last_name = ?, email = ? WHERE student_id = ?`, [fname, lname, email, editingStudentId]);
+                    resetStudentForm();
+                } else {
+                    db.run(`INSERT INTO Students (first_name, last_name, email) VALUES (?, ?, ?)`, [fname, lname, email]);
+                    e.target.reset();
+                }
+                refreshAll();
+            } catch (err) {
+                alert('Error saving student: ' + err.message);
+            }
+        }
+
+        function editStudent(id, fname, lname, email) {
+            editingStudentId = id;
+            document.getElementById('std-fname').value = fname;
+            document.getElementById('std-lname').value = lname;
+            document.getElementById('std-email').value = email;
+            document.getElementById('student-form-title').innerText = `Edit Student (ID: ${id})`;
+            document.getElementById('student-submit-btn').innerText = 'Update Student';
+            document.getElementById('student-cancel-btn').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetStudentForm() {
+            editingStudentId = null;
+            document.querySelector('#tab-students form').reset();
+            document.getElementById('student-form-title').innerText = 'Add New Student';
+            document.getElementById('student-submit-btn').innerText = 'Add Student';
+            document.getElementById('student-cancel-btn').classList.add('hidden');
+        }
+
+        function deleteStudent(id) {
+            if (!confirm('Are you sure you want to delete this student?')) return;
+            db.run(`DELETE FROM Enrollment WHERE student_id = ?`, [id]);
+            db.run(`DELETE FROM Student_Major WHERE student_id = ?`, [id]);
+            db.run(`DELETE FROM Students WHERE student_id = ?`, [id]);
+            refreshAll();
+        }
+
+        // ================= COURSES LOGIC =================
+        function renderCourses() {
+            const res = db.exec(`SELECT * FROM Courses;`);
+            const container = document.getElementById('courses-table-container');
+            if (res.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500">No courses available.</p>';
+                return;
+            }
+            let html = '<table class="w-full text-left border-collapse text-sm"><thead><tr class="bg-slate-50 border-b"><th class="p-3 font-semibold">ID</th><th class="p-3 font-semibold">Code</th><th class="p-3 font-semibold">Name</th><th class="p-3 font-semibold">Seats</th><th class="p-3 font-semibold text-right">Actions</th></tr></thead><tbody>';
+            res[0].values.forEach(row => {
+                html += `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-3">${row[0]}</td>
+                    <td class="p-3">${row[1]}</td>
+                    <td class="p-3">${row[2]}</td>
+                    <td class="p-3">${row[3]}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editCourse(${row[0]}, ${row[1]}, '${row[2]}', ${row[3]})" class="text-amber-600 hover:text-amber-800 font-medium text-xs bg-amber-50 px-3 py-1 rounded-lg cursor-pointer">Edit</button>
+                        <button onclick="deleteCourse(${row[0]})" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-3 py-1 rounded-lg cursor-pointer">Delete</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function handleCourseSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('crs-id').value;
+            const code = document.getElementById('crs-code').value;
+            const name = document.getElementById('crs-name').value;
+            const seats = document.getElementById('crs-seats').value;
+
+            try {
+                if (editingCourseId !== null) {
+                    db.run(`UPDATE Courses SET course_id = ?, course_code = ?, course_name = ?, total_seats = ? WHERE course_id = ?`, [id, code, name, seats, editingCourseId]);
+                    resetCourseForm();
+                } else {
+                    db.run(`INSERT INTO Courses VALUES (?, ?, ?, ?)`, [id, code, name, seats]);
+                    e.target.reset();
+                }
+                refreshAll();
+            } catch (err) {
+                alert('Error saving course: ' + err.message);
+            }
+        }
+
+        function editCourse(id, code, name, seats) {
+            editingCourseId = id;
+            document.getElementById('crs-id').value = id;
+            document.getElementById('crs-code').value = code;
+            document.getElementById('crs-name').value = name;
+            document.getElementById('crs-seats').value = seats;
+            document.getElementById('course-form-title').innerText = `Edit Course (ID: ${id})`;
+            document.getElementById('course-submit-btn').innerText = 'Update Course';
+            document.getElementById('course-cancel-btn').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetCourseForm() {
+            editingCourseId = null;
+            document.querySelector('#tab-courses form').reset();
+            document.getElementById('course-form-title').innerText = 'Add New Course';
+            document.getElementById('course-submit-btn').innerText = 'Add Course';
+            document.getElementById('course-cancel-btn').classList.add('hidden');
+        }
+
+        function deleteCourse(id) {
+            if (!confirm('Delete this course?')) return;
+            db.run(`DELETE FROM Enrollment WHERE course_id = ?`, [id]);
+            db.run(`DELETE FROM Courses WHERE course_id = ?`, [id]);
+            refreshAll();
+        }
+
+        // ================= MAJORS LOGIC =================
+        function renderMajors() {
+            const res = db.exec(`SELECT s.student_id, s.first_name, s.last_name, m.major_name FROM Students s LEFT JOIN Student_Major sm ON s.student_id = sm.student_id LEFT JOIN Major m ON sm.major_id = m.major_id;`);
+            const container = document.getElementById('majors-table-container');
+            if (res.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500">No major allocations found.</p>';
+                return;
+            }
+            let html = '<table class="w-full text-left border-collapse text-sm"><thead><tr class="bg-slate-50 border-b"><th class="p-3 font-semibold">Student ID</th><th class="p-3 font-semibold">Student Name</th><th class="p-3 font-semibold">Assigned Major</th></tr></thead><tbody>';
+            res[0].values.forEach(row => {
+                html += `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-3">${row[0]}</td>
+                    <td class="p-3">${row[1]} ${row[2]}</td>
+                    <td class="p-3 font-medium text-indigo-600">${row[3] || 'Unassigned'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function addMajor(e) {
+            e.preventDefault();
+            const id = document.getElementById('maj-id').value;
+            const name = document.getElementById('maj-name').value;
+            try {
+                db.run(`INSERT INTO Major VALUES (?, ?)`, [id, name]);
+                e.target.reset();
+                refreshAll();
+            } catch (err) {
+                alert('Error creating major: ' + err.message);
+            }
+        }
+
+        function assignMajor(e) {
+            e.preventDefault();
+            const stdId = document.getElementById('assign-std').value;
+            const majId = document.getElementById('assign-maj').value;
+            try {
+                db.run(`INSERT OR REPLACE INTO Student_Major (student_id, major_id) VALUES (?, ?)`, [stdId, majId]);
+                refreshAll();
+                alert('Major successfully assigned!');
+            } catch (err) {
+                alert('Error assigning major: ' + err.message);
+            }
+        }
+
+        // ================= ENROLLMENTS LOGIC =================
+        function renderEnrollments() {
+            const res = db.exec(`SELECT s.first_name, s.last_name, c.course_name, c.course_code, s.student_id, c.course_id FROM Enrollment e JOIN Students s ON e.student_id = s.student_id JOIN Courses c ON e.course_id = c.course_id;`);
+            const container = document.getElementById('enrollments-table-container');
+            if (res.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500">No active enrollments.</p>';
+                return;
+            }
+            let html = '<table class="w-full text-left border-collapse text-sm"><thead><tr class="bg-slate-50 border-b"><th class="p-3 font-semibold">Student</th><th class="p-3 font-semibold">Course Name</th><th class="p-3 font-semibold">Course Code</th><th class="p-3 font-semibold text-right">Actions</th></tr></thead><tbody>';
+            res[0].values.forEach(row => {
+                html += `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-3">${row[0]} ${row[1]}</td>
+                    <td class="p-3">${row[2]}</td>
+                    <td class="p-3">${row[3]}</td>
+                    <td class="p-3 text-right"><button onclick="removeEnrollment(${row[4]}, ${row[5]})" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-3 py-1 rounded-lg cursor-pointer">Unenroll</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function addEnrollment(e) {
+            e.preventDefault();
+            const stdId = document.getElementById('enr-std').value;
+            const crsId = document.getElementById('enr-crs').value;
+            try {
+                db.run(`INSERT INTO Enrollment VALUES (?, ?)`, [stdId, crsId]);
+                refreshAll();
+            } catch (err) {
+                alert('Student is already enrolled in this course.');
+            }
+        }
+
+        function removeEnrollment(stdId, crsId) {
+            db.run(`DELETE FROM Enrollment WHERE student_id = ? AND course_id = ?`, [stdId, crsId]);
+            refreshAll();
+        }
+
+        function populateDropdowns() {
+            try {
+                const students = db.exec("SELECT student_id, first_name, last_name FROM Students;");
+                const courses = db.exec("SELECT course_id, course_name FROM Courses;");
+                const majors = db.exec("SELECT major_id, major_name FROM Major;");
+
+                let stdOptions = '';
+                if (students.length > 0) {
+                    students[0].values.forEach(s => stdOptions += `<option value="${s[0]}">${s[1]} ${s[2]} (ID: ${s[0]})</option>`);
+                }
+
+                let crsOptions = '';
+                if (courses.length > 0) {
+                    courses[0].values.forEach(c => crsOptions += `<option value="${c[0]}">${c[1]} (ID: ${c[0]})</option>`);
+                }
+
+                let majOptions = '';
+                if (majors.length > 0) {
+                    majors[0].values.forEach(m => majOptions += `<option value="${m[0]}">${m[1]}</option>`);
+                }
+
+                document.getElementById('assign-std').innerHTML = stdOptions;
+                document.getElementById('assign-maj').innerHTML = majOptions;
+                document.getElementById('enr-std').innerHTML = stdOptions;
+                document.getElementById('enr-crs').innerHTML = crsOptions;
+            } catch (e) {}
+        }
+
+
+
+		
+// =====================================
+// HTML SECURITY HELPER
+// =====================================
+
+function escapeHTML(value) {
+
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+
+    })[char]);
+
+}
+        
+// =====================================
+// CSV IMPORT
+// =====================================
+
+function importCSVTable(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const tableName = file.name.split("_")[0];
+    const allowedTables = [
+        "Students",
+        "Courses",
+        "Major",
+        "Enrollment",
+        "Student_Major"
+    ];
+
+    if (!allowedTables.includes(tableName)) {
+        alert("Invalid CSV filename or table name.");
+        event.target.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const lines = e.target.result
+                .split(/\r?\n/)
+                .filter(line => line.trim() !== "");
+
+            if (lines.length < 2) {
+                throw new Error("CSV file is empty.");
+            }
+
+            const headers = parseCSVLine(lines[0]);
+            const columns = {
+                Students: ["student_id", "first_name", "last_name", "email"],
+                Courses: ["course_id", "course_code", "course_name", "total_seats"],
+                Major: ["major_id", "major_name"],
+                Enrollment: ["student_id", "course_id"],
+                Student_Major: ["student_id", "major_id"]
+            };
+
+            if (
+                headers.length !== columns[tableName].length ||
+                !headers.every((header, index) =>
+                    header === columns[tableName][index]
+                )
+            ) {
+                throw new Error("CSV headers do not match the table.");
+            }
+
+            const rows = lines.slice(1).map(parseCSVLine);
+            if (rows.some(row => row.length !== headers.length)) {
+                throw new Error("Invalid CSV row format.");
+            }
+
+            db.run("BEGIN TRANSACTION;");
+
+            try {
+                if (tableName === "Students") {
+                    db.run("DELETE FROM Enrollment;");
+                    db.run("DELETE FROM Student_Major;");
+                }
+
+                if (tableName === "Courses") {
+                    db.run("DELETE FROM Enrollment;");
+                }
+
+                db.run(`DELETE FROM ${tableName};`);
+
+                const placeholders = headers.map(() => "?").join(",");
+                const sql = `
+                    INSERT INTO ${tableName}
+                    (${headers.join(",")})
+                    VALUES (${placeholders})
+                `;
+
+                rows.forEach(row => {
+                    db.run(sql, row);
+                });
+
+                db.run("COMMIT;");
+            } catch (error) {
+                db.run("ROLLBACK;");
+                throw error;
+            }
+
+            refreshAll();
+            alert("CSV imported successfully!");
+        } catch (error) {
+            alert("CSV import error: " + error.message);
+        }
+        event.target.value = "";
+    };
+
+    reader.readAsText(file);
+}
+
+
+// =====================================
+// CSV LINE PARSER
+// =====================================
+
+function parseCSVLine(text) {
+    const result = [];
+    let value = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '"') {
+            if (inQuotes && text[i + 1] === '"') {
+                value += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === "," && !inQuotes) {
+            result.push(value);
+            value = "";
+        } else {
+            value += char;
+        }
+    }
+
+    if (inQuotes) {
+        throw new Error("Unclosed quotation mark in CSV.");
+    }
+
+    result.push(value);
+    return result;
+}
+
+
+// =====================================
+// SQL CONSOLE
+// =====================================
+
+function runCustomQuery() {
+    const query = document.getElementById("sqlInput").value.trim();
+    const resultDiv = document.getElementById("sqlResult");
+
+    if (!query) {
+        resultDiv.innerHTML = '<p class="text-red-600">Enter a SQL query.</p>';
+        return;
+    }
+
+    try {
+        const results = db.exec(query);
+        saveDatabase();
+        refreshAll();
+
+        if (results.length === 0) {
+            resultDiv.innerHTML = `
+                <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl">
+                    SQL executed successfully!
+                    <p>Database changes have been saved.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = "";
+        results.forEach(result => {
+            html += `
+                <table class="w-full text-left text-sm border-collapse mb-4">
+                    <thead>
+                        <tr class="bg-slate-100 border-b">
+            `;
+
+            result.columns.forEach(column => {
+                html += `<th class="p-3">${escapeHTML(column)}</th>`;
+            });
+
+            html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            result.values.forEach(row => {
+                html += "<tr class='border-b'>";
+                row.forEach(value => {
+                    html += `<td class="p-3">${escapeHTML(value)}</td>`;
+                });
+                html += "</tr>";
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+        });
+
+        resultDiv.innerHTML = html;
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="bg-red-50 text-red-600 p-4 rounded-xl">
+                <strong>SQL Error</strong>
+                <p>${escapeHTML(error.message)}</p>
+            </div>
+        `;
+    }
+}
+
+
+// =====================================
+// CSV EXPORT
+// =====================================
+
+function exportTableToCSV(tableName) {
+    const allowedTables = [
+        "Students",
+        "Courses",
+        "Major",
+        "Enrollment",
+        "Student_Major"
+    ];
+
+    if (!allowedTables.includes(tableName)) return;
+
+    try {
+        const result = db.exec(`SELECT * FROM ${tableName}`);
+        if (!result.length) {
+            alert("Table is empty.");
+            return;
+        }
+
+        const columns = result[0].columns;
+        const rows = result[0].values;
+
+        const csv = [
+            columns,
+            ...rows
+        ].map(row =>
+            row.map(value => {
+                const text = value === null ? "" : String(value);
+                return `"${text.replace(/"/g, '""')}"`;
+            }).join(",")
+        ).join("\r\n");
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = tableName + "_backup.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function exportAllTables() {
+    const tables = [
+        "Students",
+        "Courses",
+        "Major",
+        "Enrollment",
+        "Student_Major"
+    ];
+
+    tables.forEach(table => exportTableToCSV(table));
+}
+
+
+// =====================================
+// DATABASE PERSISTENCE
+// =====================================
+
+function saveDatabase() {
+    try {
+        if (!db) return;
+
+        const data = db.export();
+        const binary = Array.from(data);
+
+        localStorage.setItem(
+            DB_STORAGE_KEY,
+            JSON.stringify(binary)
+        );
+
+        const statusElem = document.getElementById('sqlSaveStatus');
+        if (statusElem) {
+            statusElem.innerText = 'Database saved successfully!';
+        }
+    } catch (error) {
+        alert('Database save error: ' + error.message);
+    }
+}
+
+function loadSavedDatabase(SQL) {
+    const savedData = localStorage.getItem(DB_STORAGE_KEY);
+    if (!savedData) {
+        return null;
+    }
+
+    try {
+        const binary = new Uint8Array(JSON.parse(savedData));
+        return new SQL.Database(binary);
+    } catch (error) {
+        console.error('Could not load saved database:', error);
+        return null;
+    }
+}
+
+function downloadDatabase() {
+    if (!db) return;
+
+    const data = db.export();
+    const blob = new Blob(
+        [data],
+        { type: 'application/x-sqlite3' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'StudentDB_Backup.sqlite';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+
+// =====================================
+// START APPLICATION
+// =====================================
+
+window.addEventListener("DOMContentLoaded", initDB);
+
+	</script>
+</body>
+</html>
